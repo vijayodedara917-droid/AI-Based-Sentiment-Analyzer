@@ -1,0 +1,790 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: AI Sentiment Analyzer API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: sentiment
+    description: Sentiment analysis operations
+  - name: analyses
+    description: Analysis history and statistics
+  - name: alerts
+    description: Alert configuration
+  - name: apikeys
+    description: API key management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /sentiment/analyze:
+    post:
+      operationId: analyzeSentiment
+      tags: [sentiment]
+      summary: Analyze single text
+      description: Analyze sentiment of a single text
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeSentimentBody"
+      responses:
+        "200":
+          description: Sentiment analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentimentResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sentiment/batch:
+    post:
+      operationId: batchAnalyzeSentiment
+      tags: [sentiment]
+      summary: Batch analyze texts
+      description: Analyze sentiment of up to 500 texts
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAnalyzeSentimentBody"
+      responses:
+        "200":
+          description: Batch analysis results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchSentimentResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses:
+    get:
+      operationId: listAnalyses
+      tags: [analyses]
+      summary: List sentiment analyses
+      description: Get paginated list of past sentiment analyses
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sentiment
+          in: query
+          schema:
+            type: string
+            enum: [positive, negative, neutral]
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of analyses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAnalysesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses/{id}:
+    get:
+      operationId: getAnalysis
+      tags: [analyses]
+      summary: Get analysis by ID
+      description: Get a single analysis record
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analysis record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentimentResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteAnalysis
+      tags: [analyses]
+      summary: Delete analysis
+      description: Delete an analysis record
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses/stats/distribution:
+    get:
+      operationId: getSentimentDistribution
+      tags: [analyses]
+      summary: Sentiment distribution
+      description: Get counts of positive, negative, and neutral sentiment results
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: source
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Distribution stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentimentDistribution"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses/stats/trends:
+    get:
+      operationId: getSentimentTrends
+      tags: [analyses]
+      summary: Sentiment trends over time
+      description: Get sentiment counts grouped by day for trend analysis
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+        - name: source
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses/stats/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analyses]
+      summary: Analytics summary
+      description: Get high-level metrics including total analyses and average confidence
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses/export/csv:
+    get:
+      operationId: exportAnalysesCsv
+      tags: [analyses]
+      summary: Export analyses as CSV
+      description: Download all analyses as a CSV file
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: sentiment
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CSV file content
+          content:
+            text/csv:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /alerts/config:
+    get:
+      operationId: getAlertConfig
+      tags: [alerts]
+      summary: Get alert configuration
+      description: Get the current negative sentiment alert threshold and settings
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+
+    put:
+      operationId: updateAlertConfig
+      tags: [alerts]
+      summary: Update alert configuration
+      description: Update the negative sentiment alert threshold
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAlertConfigBody"
+      responses:
+        "200":
+          description: Updated alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertConfig"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /alerts/status:
+    get:
+      operationId: getAlertStatus
+      tags: [alerts]
+      summary: Check alert status
+      description: Check if negative sentiment is currently above threshold
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: Current alert status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertStatus"
+
+  /apikeys:
+    get:
+      operationId: listApiKeys
+      tags: [apikeys]
+      summary: List API keys
+      description: Get list of active API keys (masked)
+      responses:
+        "200":
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+
+    post:
+      operationId: createApiKey
+      tags: [apikeys]
+      summary: Create API key
+      description: Generate a new API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyBody"
+      responses:
+        "201":
+          description: Created API key (full key shown only once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateApiKeyResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /apikeys/{id}:
+    delete:
+      operationId: deleteApiKey
+      tags: [apikeys]
+      summary: Delete API key
+      description: Revoke an API key
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AnalyzeSentimentBody:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text to analyze
+        source:
+          type: ["string", "null"]
+          description: Source identifier (e.g. "twitter", "product-reviews")
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
+          description: Additional metadata to store
+      required:
+        - text
+
+    BatchAnalyzeSentimentBody:
+      type: object
+      properties:
+        texts:
+          type: array
+          items:
+            type: string
+          maxItems: 500
+          description: Array of texts to analyze
+        source:
+          type: ["string", "null"]
+          description: Source identifier
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
+      required:
+        - texts
+
+    SentimentResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral]
+        confidence:
+          type: number
+          description: Confidence score between 0 and 1
+        source:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - text
+        - sentiment
+        - confidence
+        - createdAt
+
+    BatchSentimentResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SentimentResult"
+        total:
+          type: integer
+        positive:
+          type: integer
+        negative:
+          type: integer
+        neutral:
+          type: integer
+        alertTriggered:
+          type: boolean
+          description: True if negative sentiment exceeded the configured threshold
+      required:
+        - results
+        - total
+        - positive
+        - negative
+        - neutral
+        - alertTriggered
+
+    ListAnalysesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SentimentResult"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        pages:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - pages
+
+    SentimentDistribution:
+      type: object
+      properties:
+        positive:
+          type: integer
+        negative:
+          type: integer
+        neutral:
+          type: integer
+        total:
+          type: integer
+        positivePercent:
+          type: number
+        negativePercent:
+          type: number
+        neutralPercent:
+          type: number
+      required:
+        - positive
+        - negative
+        - neutral
+        - total
+        - positivePercent
+        - negativePercent
+        - neutralPercent
+
+    TrendDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        positive:
+          type: integer
+        negative:
+          type: integer
+        neutral:
+          type: integer
+        total:
+          type: integer
+      required:
+        - date
+        - positive
+        - negative
+        - neutral
+        - total
+
+    TrendsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendDataPoint"
+        days:
+          type: integer
+      required:
+        - data
+        - days
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalAnalyses:
+          type: integer
+        todayCount:
+          type: integer
+        avgConfidence:
+          type: number
+        negativeSentimentPercent:
+          type: number
+        alertTriggered:
+          type: boolean
+        topSources:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                type: string
+              count:
+                type: integer
+            required:
+              - source
+              - count
+      required:
+        - totalAnalyses
+        - todayCount
+        - avgConfidence
+        - negativeSentimentPercent
+        - alertTriggered
+        - topSources
+
+    AlertConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+        threshold:
+          type: number
+          description: Negative sentiment percentage threshold (0-100)
+        windowMinutes:
+          type: integer
+          description: Time window in minutes to calculate negative percentage
+        enabled:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - threshold
+        - windowMinutes
+        - enabled
+        - updatedAt
+
+    UpdateAlertConfigBody:
+      type: object
+      properties:
+        threshold:
+          type: number
+        windowMinutes:
+          type: integer
+        enabled:
+          type: boolean
+
+    AlertStatus:
+      type: object
+      properties:
+        alertTriggered:
+          type: boolean
+        negativePercent:
+          type: number
+        threshold:
+          type: number
+        windowMinutes:
+          type: integer
+        recentNegative:
+          type: integer
+        recentTotal:
+          type: integer
+      required:
+        - alertTriggered
+        - negativePercent
+        - threshold
+        - windowMinutes
+        - recentNegative
+        - recentTotal
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        keyPrefix:
+          type: string
+          description: First 8 characters of the key for identification
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - name
+        - keyPrefix
+        - createdAt
+
+    CreateApiKeyBody:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Human-readable name for the API key
+      required:
+        - name
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        key:
+          type: string
+          description: Full API key shown once
+        keyPrefix:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - key
+        - keyPrefix
+        - createdAt

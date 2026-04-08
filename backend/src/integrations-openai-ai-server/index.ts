@@ -1,0 +1,1 @@
+export { openai } from "../integrations/client";

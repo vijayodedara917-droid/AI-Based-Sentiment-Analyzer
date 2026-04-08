@@ -1,0 +1,39 @@
+{
+  "name": "sentiq-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "node ./build.mjs",
+    "start": "node --enable-source-maps ./dist/index.mjs",
+    "db:push": "drizzle-kit push"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2",
+    "drizzle-orm": "^0.38.0",
+    "drizzle-zod": "^0.8.3",
+    "express": "^5",
+    "openai": "^4.0.0",
+    "p-limit": "^7.3.0",
+    "p-retry": "^8.0.0",
+    "pg": "^8.0.0",
+    "pino": "^9",
+    "pino-http": "^10",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.0.0",
+    "drizzle-kit": "^0.29.0",
+    "esbuild": "^0.27.3",
+    "esbuild-plugin-pino": "^2.3.3",
+    "pino-pretty": "^13",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
